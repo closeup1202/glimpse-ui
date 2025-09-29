@@ -24,11 +24,12 @@ const LogBasedServiceStatus: React.FC<LogBasedServiceStatusProps> = ({
   const serviceStats = useMemo(() => {
     if (!logs.length) return [];
 
-    const now = new Date();
+    // 가장 최근 로그 시간을 기준점으로 사용
+    const latestLogTime = new Date(Math.max(...logs.map(log => new Date(log.timestamp).getTime())));
     const timeWindow = timeWindowMinutes * 60 * 1000;
     const recentLogs = logs.filter(log => {
       const logTime = new Date(log.timestamp);
-      return (now.getTime() - logTime.getTime()) <= timeWindow;
+      return (latestLogTime.getTime() - logTime.getTime()) <= timeWindow;
     });
 
     // 애플리케이션별로 그룹화
@@ -51,7 +52,6 @@ const LogBasedServiceStatus: React.FC<LogBasedServiceStatusProps> = ({
       // 최근 에러 메시지들
       const recentErrors = appLogs
         .filter(log => log.logLevelString === 'ERROR')
-        .slice(-3)
         .map(log => log.message);
 
       // 마지막 로그 시간
@@ -92,21 +92,21 @@ const LogBasedServiceStatus: React.FC<LogBasedServiceStatusProps> = ({
     switch (status) {
       case 'healthy':
         return {
-          bg: 'bg-green-100',
+          bg: 'bg-green-50',
           text: 'text-green-800',
           dot: 'bg-green-500',
           border: 'border-green-200'
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-100',
+          bg: 'bg-yellow-50',
           text: 'text-yellow-800',
           dot: 'bg-yellow-500',
           border: 'border-yellow-200'
         };
       case 'critical':
         return {
-          bg: 'bg-red-100',
+          bg: 'bg-red-50',
           text: 'text-red-800',
           dot: 'bg-red-500',
           border: 'border-red-200'
@@ -139,103 +139,114 @@ const LogBasedServiceStatus: React.FC<LogBasedServiceStatusProps> = ({
   const silentCount = serviceStats.filter(s => s.status === 'silent').length;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow p-4 h-[400px] flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-medium text-gray-900">Service Status (Log-based)</h3>
+        <div className="relative group">
+          <h3 className="text-base font-medium text-gray-900 cursor-help">
+            Service Status (Log-based)
+          </h3>
+          <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50">
+            <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+              <div className="space-y-1">
+                <div>• Healthy: &lt;5% errors</div>
+                <div>• Warning: 5-20% errors</div>
+                <div>• Critical: &gt;20% errors</div>
+                <div>• Silent: No recent logs</div>
+              </div>
+              <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        </div>
         <div className="text-sm text-gray-600">
           Last {timeWindowMinutes}m
         </div>
       </div>
 
-      {/* 서비스 목록 */}
-      <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
-        {serviceStats.slice(0, 4).map((service, index) => {
-          const statusConfig = getStatusConfig(service.status);
+      {/* 서비스 목록 또는 빈 상태 */}
+      {serviceStats.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="text-center">
+            <div className="text-sm">No services detected in recent logs</div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 서비스 목록 */}
+          <div className="space-y-2 mb-3 flex-1">
+            {serviceStats.slice(0, 3).map((service, index) => {
+              const statusConfig = getStatusConfig(service.status);
 
-          return (
-            <div
-              key={index}
-              className={`p-3 rounded-lg border ${statusConfig.border} ${statusConfig.bg}`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${statusConfig.dot}`}></div>
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">{service.applicationName}</div>
-                    <div className="text-xs text-gray-500">
-                      {service.totalLogs} logs, {service.errorCount} errors
+              return (
+                <div
+                  key={index}
+                  className={`p-2 rounded-lg border ${statusConfig.border} ${statusConfig.bg}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${statusConfig.dot}`}></div>
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{service.applicationName}</div>
+                        <div className="text-xs text-gray-500">
+                          {service.totalLogs} logs, {service.errorCount} errors
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-gray-900">
+                        {service.status === 'silent' ? 'SILENT' : `${service.errorRate.toFixed(1)}%`}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {formatLastSeen(service.lastLogTime)}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <div className="text-sm font-bold text-gray-900">
-                    {service.status === 'silent' ? 'SILENT' : `${service.errorRate.toFixed(1)}%`}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {formatLastSeen(service.lastLogTime)}
-                  </div>
-                </div>
-              </div>
-
-              {/* 최근 에러들 */}
-              {service.recentErrors.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-xs text-red-600 font-medium mb-1">Recent Errors:</div>
-                  {service.recentErrors.slice(0, 1).map((error, errorIndex) => (
-                    <div key={errorIndex} className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded truncate">
-                      {error}
-                    </div>
-                  ))}
-                  {service.recentErrors.length > 1 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      +{service.recentErrors.length - 1} more errors
+                  {/* 최근 에러들 */}
+                  {service.recentErrors.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-red-600 font-medium mb-1">Recent Errors:</div>
+                      {service.recentErrors.slice(0, 1).map((error, errorIndex) => (
+                        <div key={errorIndex} className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded truncate">
+                          {error}
+                        </div>
+                      ))}
+                      {service.recentErrors.length > 1 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          +{service.recentErrors.length - 1} more errors
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
+              );
+            })}
+          </div>
+
+          {/* 전체 상태 요약 */}
+          <div className="border-t border-gray-300 pt-3 flex-shrink-0">
+            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+              <div>
+                <div className="text-sm font-bold text-green-600">{healthyCount}</div>
+                <div className="text-gray-500">Healthy</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-yellow-600">{warningCount}</div>
+                <div className="text-gray-500">Warning</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-red-600">{criticalCount}</div>
+                <div className="text-gray-500">Critical</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-gray-600">{silentCount}</div>
+                <div className="text-gray-500">Silent</div>
+              </div>
             </div>
-          );
-        })}
+          </div>
+        </>
+      )}
 
-        {serviceStats.length === 0 && (
-          <div className="text-center text-gray-500 py-4">
-            <div className="text-sm">No services detected in recent logs</div>
-          </div>
-        )}
-      </div>
-
-      {/* 전체 상태 요약 */}
-      <div className="border-t pt-3">
-        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-          <div>
-            <div className="text-sm font-bold text-green-600">{healthyCount}</div>
-            <div className="text-gray-500">Healthy</div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-yellow-600">{warningCount}</div>
-            <div className="text-gray-500">Warning</div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-red-600">{criticalCount}</div>
-            <div className="text-gray-500">Critical</div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gray-600">{silentCount}</div>
-            <div className="text-gray-500">Silent</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 상태 설명 */}
-      <div className="mt-3 text-xs text-gray-600">
-        <div className="flex flex-wrap gap-2">
-          <span>• Healthy: &lt;5% errors</span>
-          <span>• Warning: 5-20% errors</span>
-          <span>• Critical: &gt;20% errors</span>
-          <span>• Silent: No recent logs</span>
-        </div>
-      </div>
     </div>
   );
 };

@@ -118,23 +118,28 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
   const criticalCount = alerts.filter(alert => alert.severity === 'critical' && alert.status === 'active').length;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-medium text-gray-900">Critical Alerts</h3>
+    <div className="bg-white rounded-lg shadow p-4 h-[400px] flex flex-col">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          <h3 className="text-base font-medium text-gray-900 leading-none mr-3">Critical Alerts</h3>
           {criticalCount > 0 && (
-            <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+            <div className="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full animate-pulse leading-none flex items-center">
               {criticalCount} CRITICAL
             </div>
           )}
-          <div className="text-sm text-gray-600">
+          <div className="bg-green-800 text-white text-[10px] px-2 py-1 rounded-full leading-none flex items-center">
             {activeAlerts.length} active
           </div>
         </div>
+        {activeAlerts.length > 0 && (
+          <button className="px-2 py-1 border border-gray-300 cursor-pointer text-gray-600 text-xs rounded-md hover:bg-gray-50">
+            Ack All
+          </button>
+        )}
       </div>
 
       {/* 알림 목록 */}
-      <div className="space-y-2 mb-3 max-h-64 overflow-y-auto">
+      <div className="space-y-2 mb-3 max-h-64 overflow-y-auto mt-3">
         {alerts.slice(0, 4).map((alert) => {
           const severityConfig = getSeverityConfig(alert.severity);
           const statusConfig = getStatusConfig(alert.status);
@@ -142,7 +147,7 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
           return (
             <div
               key={alert.id}
-              className={`p-3 rounded-lg border-l-4 ${severityConfig.border} ${severityConfig.bg}`}
+              className={`p-1 rounded-lg border-l-4 ${severityConfig.border} ${severityConfig.bg}`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2">
@@ -188,43 +193,29 @@ const CriticalAlertsPanel: React.FC<CriticalAlertsPanelProps> = ({
         })}
       </div>
 
-      {/* 요약 통계 */}
-      <div className="border-t pt-3">
+      {/* 요약 통계 - 맨 하단 */}
+      <div className="border-t border-gray-300 pt-3 mt-4">
         <div className="grid grid-cols-3 gap-4 text-center text-xs">
           <div>
-            <div className="text-lg font-bold text-red-600">
+            <div className="text-sm font-bold text-red-600">
               {alerts.filter(a => a.severity === 'critical').length}
             </div>
             <div className="text-gray-500">Critical</div>
           </div>
           <div>
-            <div className="text-lg font-bold text-orange-600">
+            <div className="text-sm font-bold text-orange-600">
               {alerts.filter(a => a.severity === 'high').length}
             </div>
             <div className="text-gray-500">High</div>
           </div>
           <div>
-            <div className="text-lg font-bold text-yellow-600">
+            <div className="text-sm font-bold text-yellow-600">
               {alerts.filter(a => a.severity === 'medium').length}
             </div>
             <div className="text-gray-500">Medium</div>
           </div>
         </div>
       </div>
-
-      {/* 빠른 액션 */}
-      {activeAlerts.length > 0 && (
-        <div className="mt-3 pt-3 border-t">
-          <div className="flex justify-center space-x-2">
-            <button className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600">
-              Acknowledge All
-            </button>
-            <button className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-              View Details
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

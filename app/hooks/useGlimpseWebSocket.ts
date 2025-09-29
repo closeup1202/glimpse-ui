@@ -8,6 +8,7 @@ interface UseGlimpseWebSocketReturn {
   connectionStatus: ConnectionStatus;
   sendPing: () => void;
   clearLogs: () => void;
+  reconnect: () => void;
 }
 
 const useGlimpseWebSocket = (url: string): UseGlimpseWebSocketReturn => {
@@ -15,6 +16,7 @@ const useGlimpseWebSocket = (url: string): UseGlimpseWebSocketReturn => {
   const [stats, setStats] = useState<LogStats | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('Connecting');
   const socketRef = useRef<WebSocket | null>(null);
+  const [reconnectTrigger, setReconnectTrigger] = useState(0);
 
   const clearLogs = useCallback(() => {
     setLogs([]);
@@ -24,6 +26,14 @@ const useGlimpseWebSocket = (url: string): UseGlimpseWebSocketReturn => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send('ping');
     }
+  }, []);
+
+  const reconnect = useCallback(() => {
+    console.log('수동 재연결 시도');
+    if (socketRef.current) {
+      socketRef.current.close();
+    }
+    setReconnectTrigger(prev => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -105,14 +115,15 @@ const useGlimpseWebSocket = (url: string): UseGlimpseWebSocketReturn => {
         socketRef.current = null;
       }
     };
-  }, [url]);
+  }, [url, reconnectTrigger]);
 
   return {
     logs,
     stats,
     connectionStatus,
     sendPing,
-    clearLogs
+    clearLogs,
+    reconnect
   };
 };
 

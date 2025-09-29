@@ -98,9 +98,21 @@ const ErrorRateTrend: React.FC<ErrorRateTrendProps> = ({
   const currentStatus = data[data.length - 1]?.status || 'normal';
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow p-4 h-[400px] flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-medium text-gray-900">Error Rate Trend</h3>
+        <div className="relative group">
+          <h3 className="text-base font-medium text-gray-900 cursor-help">Error Rate Trend</h3>
+          <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50">
+            <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+              <div className="space-y-1">
+                <div>• Normal: &lt;2%</div>
+                <div>• Warning: 2-5%</div>
+                <div>• Critical: &gt;5%</div>
+              </div>
+              <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
           {getTrendIcon()}
           <span className={`text-lg font-bold ${getStatusColor(currentStatus)}`}>
@@ -109,72 +121,68 @@ const ErrorRateTrend: React.FC<ErrorRateTrendProps> = ({
         </div>
       </div>
 
-      {/* 차트 영역 */}
-      <div className="flex items-end justify-between h-20 mb-3">
-        {data.map((item, index) => (
-          <div key={index} className="flex flex-col items-center flex-1 h-full">
-            <div className="relative w-full flex-1 flex items-end">
-              <div
-                className={`w-full rounded-t transition-all duration-300 ${
-                  item.status === 'critical' ? 'bg-red-500' :
-                  item.status === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
-                style={{ height: `${(item.errorRate / Math.max(maxErrorRate, 15)) * 100}%` }}
-                title={`${item.time}: ${item.errorRate}% (${item.errors}/${item.totalRequests})`}
-              />
-            </div>
-            <div className="text-xs text-gray-500 mt-1 font-mono">
-              {item.time}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 현재 상태 요약 */}
-      <div className="border-t pt-3">
-        <div className="grid grid-cols-3 gap-4 text-center text-xs">
-          <div>
-            <div className={`text-sm font-bold ${getStatusColor(currentStatus)}`}>
-              {data[data.length - 1]?.errors || 0}
-            </div>
-            <div className="text-gray-500">Current Errors</div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gray-900">
-              {data[data.length - 1]?.totalRequests || 0}
-            </div>
-            <div className="text-gray-500">Total Logs</div>
-          </div>
-          <div>
-            <div className={`text-sm font-bold ${
-              trend === 'up' ? 'text-red-600' :
-              trend === 'down' ? 'text-green-600' : 'text-gray-600'
-            }`}>
-              {trend === 'up' ? '+' : trend === 'down' ? '-' : ''}
-              {Math.abs(currentErrorRate - previousErrorRate).toFixed(1)}%
-            </div>
-            <div className="text-gray-500">vs Previous</div>
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="text-center">
+            <div className="text-sm">No error trend data available</div>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Spacer */}
+          <div className="flex-1"></div>
 
-      {/* 임계값 상태 */}
-      <div className="mt-3 flex justify-center">
-        <div className="flex items-center space-x-4 text-xs">
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>Normal (&lt;2%)</span>
+          {/* 차트 영역 */}
+          <div className="flex items-end justify-between h-20 mb-3">
+            {data.map((item, index) => (
+              <div key={index} className="flex flex-col items-center flex-1 h-full">
+                <div className="relative w-full flex-1 flex items-end">
+                  <div
+                    className={`w-full rounded-t transition-all duration-300 ${
+                      item.status === 'critical' ? 'bg-red-500' :
+                      item.status === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ height: `${(item.errorRate / Math.max(maxErrorRate, 15)) * 100}%` }}
+                    title={`${item.time}: ${item.errorRate}% (${item.errors}/${item.totalRequests})`}
+                  />
+                </div>
+                <div className="text-xs text-gray-500 mt-1 font-mono">
+                  {item.time}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-            <span>Warning (2-5%)</span>
+
+          {/* 현재 상태 요약 */}
+          <div className="border-t border-gray-300 pt-3 flex-shrink-0">
+            <div className="grid grid-cols-3 gap-4 text-center text-xs">
+              <div>
+                <div className={`text-sm font-bold ${getStatusColor(currentStatus)}`}>
+                  {data[data.length - 1]?.errors || 0}
+                </div>
+                <div className="text-gray-500">Current Errors</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-gray-900">
+                  {data[data.length - 1]?.totalRequests || 0}
+                </div>
+                <div className="text-gray-500">Total Logs</div>
+              </div>
+              <div>
+                <div className={`text-sm font-bold ${
+                  trend === 'up' ? 'text-red-600' :
+                  trend === 'down' ? 'text-green-600' : 'text-gray-600'
+                }`}>
+                  {trend === 'up' ? '+' : trend === 'down' ? '-' : ''}
+                  {Math.abs(currentErrorRate - previousErrorRate).toFixed(1)}%
+                </div>
+                <div className="text-gray-500">vs Previous</div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span>Critical (&gt;5%)</span>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
+
     </div>
   );
 };

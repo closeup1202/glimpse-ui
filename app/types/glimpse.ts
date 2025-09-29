@@ -8,6 +8,7 @@
   }
 
   export interface LogStats {
+    totalLogs: number;
     errorCount: number;
     warnCount: number;
     infoCount: number;

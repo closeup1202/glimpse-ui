@@ -96,73 +96,77 @@ const TopErrorMessages: React.FC<TopErrorMessagesProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow p-4 h-[400px] flex flex-col">
       <h3 className="text-base font-medium text-gray-900 mb-3">Top Error Messages</h3>
 
-      <div className="space-y-2">
-        {errors.length === 0 ? (
-          <div className="text-center text-gray-500 py-4">
+      {errors.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="text-center">
             <div className="text-sm">No error messages found in recent logs</div>
           </div>
-        ) : (
-          errors.slice(0, 4).map((error, index) => (
-          <div key={index} className="border-l-4 border-red-400 pl-3 py-2 bg-red-50 rounded-r">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-xs font-medium text-gray-900 truncate">
-                    {error.message}
-                  </span>
-                </div>
-
-                <div className="flex items-center space-x-3 text-xs text-gray-600">
-                  <span className="font-medium text-red-600">
-                    {error.count} occurrences
-                  </span>
-
-                  <span className="text-gray-500">
-                    {error.percentage}% of total errors
-                  </span>
-
-                  <div className="flex items-center space-x-1">
-                    {getTrendIcon(error.trend)}
-                    <span className={`text-xs font-medium ${getTrendColor(error.trend)}`}>
-                      {error.trend === 'up' && '+12%'}
-                      {error.trend === 'down' && '-8%'}
-                      {error.trend === 'stable' && '0%'}
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2 flex-1">
+            {errors.slice(0, 4).map((error, index) => (
+            <div key={index} className="border-l-4 border-red-400 pl-3 py-2 bg-red-50 rounded-r">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-xs font-medium text-gray-900 truncate">
+                      {error.message}
                     </span>
                   </div>
-                </div>
-              </div>
 
-              <div className="ml-4">
-                <div className="text-right">
-                  <div className="text-lg font-bold text-red-600">
-                    #{index + 1}
+                  <div className="flex items-center space-x-3 text-xs text-gray-600">
+                    <span className="font-medium text-red-600">
+                      {error.count} occurrences
+                    </span>
+
+                    <span className="text-gray-500">
+                      {error.percentage}% of total errors
+                    </span>
+
+                    <div className="flex items-center space-x-1">
+                      {getTrendIcon(error.trend)}
+                      <span className={`text-xs font-medium ${getTrendColor(error.trend)}`}>
+                        {error.trend === 'up' && '+12%'}
+                        {error.trend === 'down' && '-8%'}
+                        {error.trend === 'stable' && '0%'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-4">
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-red-600 mr-3">
+                      #{index + 1}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* 진행률 바 */}
-            <div className="mt-2">
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                <div
-                  className="bg-red-500 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${error.percentage}%` }}
-                ></div>
+              {/* 진행률 바 */}
+              <div className="mt-2">
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className="bg-red-500 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${error.percentage}%` }}
+                  ></div>
+                </div>
               </div>
             </div>
+          ))}
           </div>
-        ))
-        )}
-      </div>
 
-      <div className="mt-4 text-center">
-        <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-          View All Error Patterns →
-        </button>
-      </div>
+          <div className="text-center flex-shrink-0">
+            <button className="text-sm text-gray-600 hover:text-gray-800 font-medium cursor-pointer ">
+              View All Error Patterns →
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

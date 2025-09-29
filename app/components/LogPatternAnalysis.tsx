@@ -51,6 +51,12 @@ const PATTERN_DEFINITIONS = [
     regex: /timeout|timed.*out|connection.*refused/i,
     severity: 'medium' as const,
     category: 'network' as const
+  },
+  {
+    pattern: 'Unknown Errors',
+    regex: /error|exception|fail|critical|warning|alert/i,
+    severity: 'medium' as const,
+    category: 'system' as const
   }
 ];
 
@@ -61,11 +67,12 @@ const LogPatternAnalysis: React.FC<LogPatternAnalysisProps> = ({
   const patterns = useMemo(() => {
     if (!logs.length) return [];
 
-    const now = new Date();
+    // 가장 최근 로그 시간을 기준점으로 사용
+    const latestLogTime = new Date(Math.max(...logs.map(log => new Date(log.timestamp).getTime())));
     const timeWindow = timeWindowMinutes * 60 * 1000;
     const recentLogs = logs.filter(log => {
       const logTime = new Date(log.timestamp);
-      return (now.getTime() - logTime.getTime()) <= timeWindow;
+      return (latestLogTime.getTime() - logTime.getTime()) <= timeWindow;
     });
 
     // Analyze patterns
@@ -138,102 +145,101 @@ const LogPatternAnalysis: React.FC<LogPatternAnalysisProps> = ({
   const sortedPatterns = [...patterns].sort((a, b) => b.count - a.count);
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white rounded-lg shadow p-4 h-[400px] flex flex-col">
       <h3 className="text-base font-medium text-gray-900 mb-3">Log Pattern Analysis</h3>
 
-      <div className="space-y-2">
-        {patterns.length === 0 ? (
-          <div className="text-center text-gray-500 py-4">
+      {patterns.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="text-center">
             <div className="text-sm">No patterns detected in recent logs</div>
           </div>
-        ) : (
-          patterns.slice(0, 3).map((pattern, index) => {
-          const severityColor = getSeverityColor(pattern.severity);
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2 flex-1">
+            {patterns.slice(0, 2).map((pattern, index) => {
+            const severityColor = getSeverityColor(pattern.severity);
 
-          return (
-            <div
-              key={index}
-              className={`p-3 rounded-lg border-2 ${severityColor.border} ${severityColor.bg}`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg">
-                    {getCategoryIcon(pattern.category)}
-                  </span>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">{pattern.pattern}</h4>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${severityColor.bg} ${severityColor.text}`}>
-                        {pattern.severity.toUpperCase()}
-                      </span>
+            return (
+              <div
+                key={index}
+                className={`p-2 rounded-lg border-2 ${severityColor.border} ${severityColor.bg}`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-lg">
+                      {getCategoryIcon(pattern.category)}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">{pattern.pattern}</h4>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${severityColor.bg} ${severityColor.text}`}>
+                          {pattern.severity.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900">
-                    {pattern.count}
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-gray-900">
+                      {pattern.count}
+                    </div>
+                    <div className="text-xs text-gray-500">matches</div>
                   </div>
-                  <div className="text-xs text-gray-500">matches</div>
+                </div>
+
+                {/* 진행률 바 */}
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Frequency</span>
+                    <span>{((pattern.count / Math.max(...patterns.map(p => p.count))) * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1">
+                    <div
+                      className={`h-1 rounded-full ${severityColor.dot.replace('bg-', 'bg-').replace('-500', '-400')}`}
+                      style={{
+                        width: `${(pattern.count / Math.max(...patterns.map(p => p.count))) * 100}%`
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </div>
 
-              {/* 진행률 바 */}
-              <div className="mt-2">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Frequency</span>
-                  <span>{((pattern.count / Math.max(...patterns.map(p => p.count))) * 100).toFixed(1)}%</span>
+            );
+          })}
+          </div>
+
+          {/* 요약 통계 */}
+          <div className="mt-2 pt-2 border-t border-gray-200 flex-shrink-0">
+            <div className="grid grid-cols-4 gap-1 text-center text-xs">
+              <div>
+                <div className="text-sm font-bold text-gray-900">
+                  {patterns.length}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1">
-                  <div
-                    className={`h-1 rounded-full ${severityColor.dot.replace('bg-', 'bg-').replace('-500', '-400')}`}
-                    style={{
-                      width: `${(pattern.count / Math.max(...patterns.map(p => p.count))) * 100}%`
-                    }}
-                  ></div>
+                <div className="text-gray-500">Patterns</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-red-600">
+                  {patterns.filter(p => p.severity === 'high').length}
                 </div>
+                <div className="text-gray-500">High</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-yellow-600">
+                  {patterns.filter(p => p.severity === 'medium').length}
+                </div>
+                <div className="text-gray-500">Medium</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-green-600">
+                  {patterns.filter(p => p.severity === 'low').length}
+                </div>
+                <div className="text-gray-500">Low</div>
               </div>
             </div>
-          );
-        })
-        )}
-      </div>
-
-      {/* 요약 통계 */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {patterns.length}
-            </div>
-            <div className="text-sm text-gray-500">Patterns</div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-red-600">
-              {patterns.filter(p => p.severity === 'high').length}
-            </div>
-            <div className="text-sm text-gray-500">High Severity</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-yellow-600">
-              {patterns.filter(p => p.severity === 'medium').length}
-            </div>
-            <div className="text-sm text-gray-500">Medium</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-green-600">
-              {patterns.filter(p => p.severity === 'low').length}
-            </div>
-            <div className="text-sm text-gray-500">Low</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-blue-600">
-              {patterns.reduce((sum, p) => sum + p.count, 0)}
-            </div>
-            <div className="text-sm text-gray-500">Total Matches</div>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };
